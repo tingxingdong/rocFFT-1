@@ -11,7 +11,7 @@
 
 #include <boost/program_options.hpp>
 #include "rocfft.h"
-#include "../../src/include/unicode.compatibility.h"
+#include "../../library/include/unicode.compatibility.h"
 #include "./rider.h"
 
 
@@ -155,7 +155,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		{
 			size_of_input_buffers_in_bytes = fftBatchSize * sizeof( std::complex< T > );
 
-			setupBuffers( 
+			setupBuffers(
 				device_id,
 				size_of_input_buffers_in_bytes, 1, input_device_buffers,
 				size_of_output_buffers_in_bytes, number_of_output_buffers, output_device_buffers);
@@ -196,7 +196,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		{
 			size_of_input_buffers_in_bytes = fftBatchSize * sizeof( T );
 
-			setupBuffers( 
+			setupBuffers(
 				device_id,
 				size_of_input_buffers_in_bytes, 2, input_device_buffers,
 				size_of_output_buffers_in_bytes, number_of_output_buffers, output_device_buffers);
@@ -239,7 +239,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		{
 			size_of_input_buffers_in_bytes = fftBatchSize * sizeof( std::complex< T > );
 
-			setupBuffers( 
+			setupBuffers(
 				device_id,
 				size_of_input_buffers_in_bytes, 1, input_device_buffers,
 				size_of_output_buffers_in_bytes, number_of_output_buffers, output_device_buffers);
@@ -268,7 +268,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		{
 			size_of_input_buffers_in_bytes = fftBatchSize * sizeof( T );
 
-			setupBuffers( 
+			setupBuffers(
 				device_id,
 				size_of_input_buffers_in_bytes, 2, input_device_buffers,
 				size_of_output_buffers_in_bytes, number_of_output_buffers, output_device_buffers);
@@ -300,7 +300,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		{
 			size_of_input_buffers_in_bytes = fftBatchSize * sizeof( T );
 
-			setupBuffers( 
+			setupBuffers(
 				device_id,
 				size_of_input_buffers_in_bytes, 1, input_device_buffers,
 				size_of_output_buffers_in_bytes, number_of_output_buffers, output_device_buffers);
@@ -351,7 +351,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 	rocfft_execution_info info = NULL;
 
 	if( (place == rocfft_placement_inplace) && packed && (scale == 1.0) &&
-		(inOffset[0] == 0) && (inOffset[1] == 0) && (outOffset[0] == 0) && (outOffset[1] == 0) ) 
+		(inOffset[0] == 0) && (inOffset[1] == 0) && (outOffset[0] == 0) && (outOffset[1] == 0) )
 	{
 		LIB_V_THROW( rocfft_plan_create( &plan, place, transformType, precision, dim, lengths, batchSize, NULL  ), "rocfft_plan_create failed" );
 	}
@@ -361,13 +361,13 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 
 		if(!packed)
 		{
-			LIB_V_THROW( rocfft_plan_description_set_data_layout( desc, inArrType, outArrType, inOffset, outOffset, 
-						3, strides, strides[3], 3, o_strides, o_strides[3] ), "rocfft_plan_description_data_layout failed" ); 
+			LIB_V_THROW( rocfft_plan_description_set_data_layout( desc, inArrType, outArrType, inOffset, outOffset,
+						3, strides, strides[3], 3, o_strides, o_strides[3] ), "rocfft_plan_description_data_layout failed" );
 		}
 		else
 		{
-			LIB_V_THROW( rocfft_plan_description_set_data_layout( desc, inArrType, outArrType, inOffset, outOffset, 
-						0, NULL, 0, 0, NULL, 0 ), "rocfft_plan_description_data_layout failed" ); 
+			LIB_V_THROW( rocfft_plan_description_set_data_layout( desc, inArrType, outArrType, inOffset, outOffset,
+						0, NULL, 0, 0, NULL, 0 ), "rocfft_plan_description_data_layout failed" );
 		}
 
 		if(scale != 1.0)
@@ -377,7 +377,7 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 			else
 				LIB_V_THROW( rocfft_plan_description_set_scale_double( desc, scale ), "rocfft_plan_description_set_scale_double failed" );
 		}
-	
+
 		LIB_V_THROW( rocfft_plan_create( &plan, place, transformType, precision, dim, lengths, batchSize, desc ), "rocfft_plan_create failed" );
 	}
 
@@ -477,20 +477,23 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 	LIB_V_THROW( rocfft_execute( plan, input_device_buffers, BuffersOut, info ), "rocfft_execute failed" );
 
 	HIP_V_THROW( hipDeviceSynchronize(), "hipDeviceSynchronize failed" );
-	
+
 
 	if(profile_count > 1)
 	{
-		Timer tr;		
+		Timer tr;
 		tr.Start();
 
 		hipEvent_t start, stop;
 		HIP_V_THROW( hipEventCreate(&start), "hipEventCreate failed" );
 		HIP_V_THROW( hipEventCreate(&stop), "hipEventCreate failed" );
 
+		HIP_V_THROW( hipEventRecord(start), "hipEventRecord failed" );
+
 		for( unsigned i = 0; i < profile_count; ++i )
 		{
 			LIB_V_THROW( rocfft_execute( plan, input_device_buffers, BuffersOut, info ), "rocfft_execute failed" );
+		        //HIP_V_THROW( hipDeviceSynchronize(), "hipDeviceSynchronize failed" );
 		}
 
 		HIP_V_THROW( hipEventRecord(stop), "hipEventRecord failed" );
@@ -513,12 +516,27 @@ int transform( size_t* lengths, const size_t *inStrides, const size_t *outStride
 		else
 			constMultiplier = 5.0;
 
-		double opsconst = constMultiplier * (double)totalLen * log((double)totalLen) / log(2.0);
+		double opsconst = (double)batchSize * constMultiplier * (double)totalLen * log((double)totalLen) / log(2.0);
+		double bytes = (double)batchSize * 2.0 * (double)totalLen ;// the scalar 2.0 is because read & write
+
+		if( (transformType == rocfft_transform_type_complex_forward) || (transformType == rocfft_transform_type_complex_inverse) ) {
+            if(precision == rocfft_precision_single) 
+                bytes *= sizeof(float) * 2;
+            else 
+                bytes *= sizeof(double) * 2;        
+        }
+        else{
+            if(precision == rocfft_precision_single) 
+                bytes *= sizeof(float);
+            else 
+                bytes *= sizeof(double);        
+        }
 
 
 		tout << "\nExecution gpu time: " << gpu_time << " ms" << std::endl;
 		tout << "Execution wall time: " << 1000.0*wtime << " ms" << std::endl;
-		tout << "Execution gflops (wall time): " << ((double)batchSize * opsconst)/(1000000000.0*wtime) << std::endl;
+		tout << "Execution gflops (wall time): " << (opsconst)/(1e9*wtime) << std::endl;
+		tout << "Bandwidth GB/s (wall time): " << (bytes)/(1e9*wtime) << std::endl;
 
 	}
 
@@ -758,8 +776,8 @@ int _tmain( int argc, _TCHAR* argv[] )
 			( "oOff1",   po::value< size_t >( &oOffset[ 1 ] )->default_value( 0 ),	"Specify the offset for second output buffer" )
 			( "batchSize,b",   po::value< size_t >( &batchSize )->default_value( 1 ), "If this value is greater than one, arrays will be used " )
 			( "profile,p",     po::value< unsigned >( &profile_count )->default_value( 1 ), "Time and report the kernel speed of the FFT (default: profiling off)" )
-			( "inArrType",      po::value< rocfft_array_type >( &inArrType )->default_value( rocfft_array_type_complex_interleaved ), "Array type of input data:\n0) interleaved\n1) planar\n2) hermitian interleaved\n3) hermitian planar\n4) real" )
-			( "outArrType",     po::value< rocfft_array_type >( &outArrType )->default_value( rocfft_array_type_complex_interleaved ), "Array type of output data:\n0) interleaved\n1) planar\n2) hermitian interleaved\n3) hermitian planar\n4) real" )
+			( "inArrType",      po::value< rocfft_array_type >( &inArrType )->default_value( rocfft_array_type_complex_interleaved ), "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) hermitian interleaved\n4) hermitian planar" )
+			( "outArrType",     po::value< rocfft_array_type >( &outArrType )->default_value( rocfft_array_type_complex_interleaved ), "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) hermitian interleaved\n4) hermitian planar" )
 			;
 
 		po::variables_map vm;
@@ -779,7 +797,7 @@ int _tmain( int argc, _TCHAR* argv[] )
 			return 0;
 		}
 
-		
+
 		if( vm.count( "info" ) )
 		{
 			return 0;
@@ -806,16 +824,31 @@ int _tmain( int argc, _TCHAR* argv[] )
 		{
 		}
 
+        if(transformType == rocfft_transform_type_real_forward)
+            if((inArrType == rocfft_array_type_complex_interleaved) && (outArrType == rocfft_array_type_complex_interleaved))
+            {
+                inArrType = rocfft_array_type_real;
+                outArrType = rocfft_array_type_hermitian_interleaved;
+            }
+
+        if(transformType == rocfft_transform_type_real_inverse)
+            if((inArrType == rocfft_array_type_complex_interleaved) && (outArrType == rocfft_array_type_complex_interleaved))
+            {
+                inArrType = rocfft_array_type_hermitian_interleaved;
+                outArrType = rocfft_array_type_real;
+            }
+
+
 		int inL = (int)inArrType;
 		int otL = (int)outArrType;
 
 		// input output array type support matrix
 		int ioArrTypeSupport[5][5] =		{
-										{ 1, 1, 0, 0, 1 },
-										{ 1, 1, 0, 0, 1 },
-										{ 0, 0, 0, 0, 1 },
-										{ 0, 0, 0, 0, 1 },
-										{ 1, 1, 1, 1, 0 },
+										{ 1, 1, 0, 0, 0 },
+										{ 1, 1, 0, 0, 0 },
+										{ 0, 0, 0, 1, 1 },
+										{ 0, 0, 1, 0, 0 },
+										{ 0, 0, 1, 0, 0 },
 										};
 
 		if(inL > 4) throw std::runtime_error( "Invalid Input array type format" );
@@ -824,7 +857,7 @@ int _tmain( int argc, _TCHAR* argv[] )
 		if(ioArrTypeSupport[inL][otL] == 0) throw std::runtime_error( "Invalid combination of Input/Output array type formats" );
 
 		bool packed = false;
-		if( (iStrides[0] == 1) && (iStrides[1] == 0) && (iStrides[2] == 0) && (iStrides[3] == 0) 
+		if( (iStrides[0] == 1) && (iStrides[1] == 0) && (iStrides[2] == 0) && (iStrides[3] == 0)
 		&&  (oStrides[0] == 1) && (oStrides[1] == 0) && (oStrides[2] == 0) && (oStrides[3] == 0) )
 			packed = true;
 
@@ -885,11 +918,11 @@ int _tmain( int argc, _TCHAR* argv[] )
 			cst[2] = cst[2] ? cst[2] : lengths[1] * cst[1];
 			cst[3] = cst[3] ? cst[3] : lengths[2] * cst[2];
 		}
-		
+
 		if( precision == rocfft_precision_single )
 			tret = transform<float>( lengths, iStrides, oStrides, batchSize, iOffset, oOffset, inArrType, outArrType, place, precision, transformType, scale, packed, deviceId, platformId, printInfo, profile_count );
 		else
-			tret = transform<double>( lengths, iStrides, oStrides, batchSize, iOffset, oOffset, inArrType, outArrType, place, precision, transformType, scale, packed, deviceId, platformId, printInfo, profile_count ); 
+			tret = transform<double>( lengths, iStrides, oStrides, batchSize, iOffset, oOffset, inArrType, outArrType, place, precision, transformType, scale, packed, deviceId, platformId, printInfo, profile_count );
 	}
 	catch( std::exception& e )
 	{
@@ -899,4 +932,3 @@ int _tmain( int argc, _TCHAR* argv[] )
 
 	return tret;
 }
-

@@ -14,8 +14,8 @@ inline bool SupportedLength(size_t len)
 {
 	size_t p = len;
 	while(!(p%2)) p /= 2;
-	//while(!(p%3)) p /= 3;
-	//while(!(p%5)) p /= 5;
+	while(!(p%3)) p /= 3;
+	while(!(p%5)) p /= 5;
 
 	if(p == 1)
 		return true;
@@ -150,6 +150,10 @@ const TrLen1D Test1DLengths[] =
 	{1},
 	{2}, {4}, {8}, {16}, {32}, {64}, {128}, {256}, {512}, {1024}, {2048}, {4096}, {8192}, {16384}, {32768},
 		{65536}, {131072}, {262144}, {524288}, {1048576}, 	
+		{2097152}, {4194304}, {8388608}, {16777216}, {33554432}, 
+		// {67108864}, {134217728},
+
+
 	{3}, {9}, {27}, {81}, {243}, {729}, {2187}, {6561}, {19683}, {59049}, {177147}, {531441}, 
 	{5}, {25}, {125}, {625}, {3125}, {15625}, {78125}, {390625}, 
 	
@@ -177,7 +181,6 @@ const TrLen1D Test1DLengths[] =
 	{960000}, {900000}, {115200}, {129600}, {384000}, {202500}, {262440}, {60}, {468750}, {103680}, 
 
 
-	//{2097152}, {4194304}, {8388608},
 	//{1594323}, {4782969},	
 	//{1953125}
 };
@@ -427,6 +430,14 @@ TEST_F( BasicInterfaceDouble1DBasisTest, InvLen210 )	{ TestRoutine(210, 1); }
 TEST_F( BasicInterfaceDouble1DBasisTest, invLen540_quick )	{ TestRoutine(540, 1); }
 
 
+TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen390625 )		{ TestRoutine(390625, -1); }
+TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen78125 )		{ TestRoutine(78125, -1); }
+TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen1953125 )	{ TestRoutine(1953125, -1); }
+//TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen48828125 )	{ TestRoutine(48828125, -1); }
+
+TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen14348907 )		{ TestRoutine(14348907, -1); }
+TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen1594323 )		{ TestRoutine(1594323, -1); }
+
 TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen8 )		{ TestRoutine(8, -1); }
 TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen7 )		{ TestRoutine(7, -1); }
 TEST_F( BasicInterfaceSingle1DBasisTest, FwdLen25 )		{ TestRoutine(25, -1); }
@@ -492,6 +503,11 @@ TEST_F( BasicInterfaceSingle2DBasisTest, InvLen64and125 )	{ TestRoutine(64,125, 
 TEST_F( BasicInterfaceSingle2DBasisTest, InvLen100and120 )	{ TestRoutine(100,120, 1); }
 TEST_F( BasicInterfaceSingle2DBasisTest, InvLen210and60 )	{ TestRoutine(210,60, 1); }
 
+TEST_F( BasicInterfaceSingle2DBasisTest, FwdLen900and900 )	    { TestRoutine(900,900, -1); }
+TEST_F( BasicInterfaceSingle2DBasisTest, FwdLen1296and1296 )    { TestRoutine(1296,1296, -1); }
+TEST_F( BasicInterfaceSingle2DBasisTest, FwdLen1000and1000 )    { TestRoutine(1000,1000, -1); }
+TEST_F( BasicInterfaceSingle2DBasisTest, FwdLen625and3125 )	    { TestRoutine(625,3125, -1); }
+TEST_F( BasicInterfaceSingle2DBasisTest, FwdLen2187and729 )	    { TestRoutine(2187,729, -1); }
 
 // Basic Interface 3D tests
 TEST_F( BasicInterfaceDouble3DBasisTest, FwdLen8and16and8 )		{ TestRoutine(8,16,8, -1); }
@@ -537,6 +553,9 @@ TEST_F( BasicInterfaceSingle3DBasisTest, InvLen64and125and27 )	{ TestRoutine(64,
 TEST_F( BasicInterfaceSingle3DBasisTest, InvLen100and120and9 )	{ TestRoutine(100,120,9, 1); }
 TEST_F( BasicInterfaceSingle3DBasisTest, InvLen210and60and36 )	{ TestRoutine(210,60,36, 1); }
 
+TEST_F( BasicInterfaceSingle3DBasisTest, FwdLen100and100and100 )		{ TestRoutine(100,100,100, -1); }
+TEST_F( BasicInterfaceSingle3DBasisTest, FwdLen125and125and125 )		{ TestRoutine(125,125,125, -1); }
+TEST_F( BasicInterfaceSingle3DBasisTest, FwdLen243and243and243 )		{ TestRoutine(243,243,243, -1); }
 
 // Parameterized tests
 
@@ -852,7 +871,11 @@ int main( int argc, char* argv[ ] )
 {
 	testing::InitGoogleTest( &argc, argv );
 
+    rocfft_setup();
+
     int retVal = RUN_ALL_TESTS( );
+
+    rocfft_cleanup();
 
 /*
     //  Reflection code to inspect how many tests failed in gTest

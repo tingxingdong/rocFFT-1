@@ -31,3 +31,9 @@
 tags
 .tags
 .*.swp
+
+# Visual Studio Code
+.vscode
+
+# install.sh build dir
+build/
