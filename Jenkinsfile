@@ -11,13 +11,6 @@ properties([buildDiscarder(logRotator(
     [$class: 'CopyArtifactPermissionProperty', projectNames: '*']
    ])
 
-    //pipeline{
-    //agent any
-    //    triggers {
-    //        cron ('H/30 * * * *')
-    //    }
-    //}
-
 ////////////////////////////////////////////////////////////////////////
 // -- AUXILLARY HELPER FUNCTIONS
 // import hudson.FilePath;
@@ -47,6 +40,8 @@ String get_upstream_build_project( )
     return upstream_cause.getUpstreamProject()
 }
 
+////////////////////////////////////////////////////////////////////////
+// Calculate the relative path between two sub-directories from a common root
 @NonCPS
 String g_relativize( String root_string, String rel_source, String rel_build )
 {
@@ -70,9 +65,9 @@ void build_directory_rel( project_paths paths, compiler_data hcc_args )
   //   paths.project_build_prefix = paths.build_prefix + '/' + paths.project_name + '/debug';
   // }
   paths.project_build_prefix = paths.build_prefix + '/' + paths.project_name;
+
 }
 
-/////////////////////
 ////////////////////////////////////////////////////////////////////////
 // Lots of images are created above; no apparent way to delete images:tags with docker global variable
 def docker_clean_images( String org, String image_name )
@@ -351,106 +346,102 @@ def build_pipeline( compiler_data compiler_args, docker_data docker_args, projec
 }
 
 // The following launches 3 builds in parallel: hcc-ctu, hcc-1.6 and cuda
-//parallel hcc_ctu:
-//{
- //try{
- // node( 'docker && rocm && dkms' )
- //  {
- //   def docker_args = new docker_data(
- //       from_image:'compute-artifactory:5001/rocm-developer-tools/hip/master/hip-hcc-ctu-ubuntu-16.04:latest',
- //       build_docker_file:'dockerfile-build-ubuntu-16.04',
- //       install_docker_file:'dockerfile-rocfft-ubuntu-16.04',
- //       docker_run_args:'--device=/dev/kfd --device=/dev/dri --group-add=video',
- //       docker_build_args:' --pull' )
+parallel hcc_ctu:
+{
+  node( 'docker && rocm && dkms' )
+  {
+    def docker_args = new docker_data(
+        from_image:'compute-artifactory:5001/rocm-developer-tools/hip/master/hip-hcc-ctu-ubuntu-16.04:latest',
+        build_docker_file:'dockerfile-build-ubuntu-16.04',
+        install_docker_file:'dockerfile-rocfft-ubuntu-16.04',
+        docker_run_args:'--device=/dev/kfd --device=/dev/dri --group-add=video',
+        docker_build_args:' --pull' )
 
-//        build_config:'Release',
-//        compiler_path:'/opt/rocm/bin/hcc' )
+    def compiler_args = new compiler_data(
+        compiler_name:'hcc-ctu',
+        build_config:'Release',
+        compiler_path:'/opt/rocm/bin/hcc' )
 
-//    def rocfft_paths = new project_paths(
-//        project_name:'rocfft-hcc-ctu',
-//        src_prefix:'src',
-//        build_prefix:'src',
-//        build_command: './install.sh -cd' )
+    def rocfft_paths = new project_paths(
+        project_name:'rocfft-hcc-ctu',
+        src_prefix:'src',
+        build_prefix:'src',
+        build_command: './install.sh -cd' )
 
-//    def print_version_closure = {
-//      sh  """
-//          set -x
-//          /opt/rocm/bin/rocm_agent_enumerator -t ALL
-//          /opt/rocm/bin/hcc --version
-//        """
-//    }
+    def print_version_closure = {
+      sh  """
+          set -x
+          /opt/rocm/bin/rocm_agent_enumerator -t ALL
+          /opt/rocm/bin/hcc --version
+        """
+    }
 
-//    build_pipeline( compiler_args, docker_args, rocfft_paths, print_version_closure )
-//   }
-//  }
-//  catch (err)
-//  {
-//    currentBuild.result = 'UNSTABLE'
-//  }
-//},
-//hcc_rocm:
-//{
-//  node( 'docker && rocm && jenkins-rocm-0' )
-//  {
-//    def hcc_docker_args = new docker_data(
-//        from_image:'rocm/dev-ubuntu-16.04:1.7.1',
-//        build_docker_file:'dockerfile-build-ubuntu-16.04',
-//        install_docker_file:'dockerfile-rocfft-ubuntu-16.04',
-//        docker_run_args:'--device=/dev/kfd --device=/dev/dri --group-add=video',
-//        docker_build_args:' --pull' )
+    build_pipeline( compiler_args, docker_args, rocfft_paths, print_version_closure )
+  }
+},
+hcc_rocm:
+{
+  node( 'docker && rocm && dkms' )
+  {
+    def hcc_docker_args = new docker_data(
+        from_image:'rocm/dev-ubuntu-16.04:1.7.1',
+        build_docker_file:'dockerfile-build-ubuntu-16.04',
+        install_docker_file:'dockerfile-rocfft-ubuntu-16.04',
+        docker_run_args:'--device=/dev/kfd --device=/dev/dri --group-add=video',
+        docker_build_args:' --pull' )
 
-//    def hcc_compiler_args = new compiler_data(
-//        compiler_name:'hcc-rocm',
-//        build_config:'Release',
-//        compiler_path:'/opt/rocm/bin/hcc' )
+    def hcc_compiler_args = new compiler_data(
+        compiler_name:'hcc-rocm',
+        build_config:'Release',
+        compiler_path:'/opt/rocm/bin/hcc' )
+
+    def rocfft_paths = new project_paths(
+        project_name:'rocfft-hcc-rocm',
+        src_prefix:'src',
+        build_prefix:'src',
+        build_command: './install.sh -cd' )
+
+    def print_version_closure = {
+      sh  """
+          set -x
+          /opt/rocm/bin/rocm_agent_enumerator -t ALL
+          /opt/rocm/bin/hcc --version
+        """
+    }
+
+    build_pipeline( hcc_compiler_args, hcc_docker_args, rocfft_paths, print_version_closure )
+  }
+} //,
+// nvcc:
+// {
+//   node( 'docker && cuda' )
+//   {
+//     def hcc_docker_args = new docker_data(
+//         from_image:'nvidia/cuda:9.1-devel-ubuntu16.04',
+//         build_docker_file:'dockerfile-build-nvidia-cuda',
+//         install_docker_file:'dockerfile-rocfft-ubuntu-cuda',
+//         docker_run_args:'--runtime=nvidia',
+//         docker_build_args:' --pull' )
+
+//     def hcc_compiler_args = new compiler_data(
+//         compiler_name:'nvcc-9.1',
+//         build_config:'Release',
+//         compiler_path:'g++' )
 
 //     def rocfft_paths = new project_paths(
-//         project_name:'rocfft-hcc-rocm',
+//         project_name:'rocfft-nvcc',
 //         src_prefix:'src',
 //         build_prefix:'src',
-//         build_command: './install.sh -cd' )
-//
+//         build_command: './install.sh -cd --cuda' )
+
 //     def print_version_closure = {
 //       sh  """
 //           set -x
-//           /opt/rocm/bin/rocm_agent_enumerator -t ALL
-//           /opt/rocm/bin/hcc --version
+//           nvidia-smi
+//           nvcc --version
 //         """
 //     }
-//
+
 //     build_pipeline( hcc_compiler_args, hcc_docker_args, rocfft_paths, print_version_closure )
 //   }
-// } //,
-nvcc:
-{
-   node( 'docker && cuda' )
-   {
-     def hcc_docker_args = new docker_data(
-         from_image:'nvidia/cuda:9.1-devel-ubuntu16.04',
-         build_docker_file:'dockerfile-build-nvidia-cuda',
-         install_docker_file:'dockerfile-rocfft-ubuntu-cuda',
-         docker_run_args:'--runtime=nvidia',
-         docker_build_args:' --pull' )
-
-     def hcc_compiler_args = new compiler_data(
-         compiler_name:'nvcc-9.1',
-         build_config:'Release',
-         compiler_path:'g++' )
-
-     def rocfft_paths = new project_paths(
-         project_name:'rocfft-nvcc',
-         src_prefix:'src',
-         build_prefix:'src',
-         build_command: './install.sh -cd --cuda' )
-
-     def print_version_closure = {
-       sh  """
-           set -x
-           nvidia-smi
-           nvcc --version
-         """
-     }
-
-     build_pipeline( hcc_compiler_args, hcc_docker_args, rocfft_paths, print_version_closure )
-   }
-}
+// }
